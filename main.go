@@ -3,27 +3,33 @@ package main
 import (
 	"flag"
 	"log"
-	"read-adviser-bot/clients/telegram"
+	tgClient "read-adviser-bot/clients/telegram"
+	event_consumer "read-adviser-bot/consumer/event-consumer"
+	"read-adviser-bot/events/telegram"
+	"read-adviser-bot/storage/files"
 )
 
 // it is better to get host just as we get Token - through the flag
 // but for lack of time lets skip it for a while
 
 const (
-	tgBotHost = "api.telegram.org"
+	tgBotHost   = "api.telegram.org"
+	storagePath = "storage"
+	batchSize   = 100
 )
 
 func main() {
+	eventsProcessor := telegram.New(
+		tgClient.New(tgBotHost, mustToken()),
+		files.New(storagePath),
+	)
 
-	tgClient := telegram.New(tgBotHost, mustToken())
+	log.Print("service started")
 
-	_ = tgClient
-
-	// fetcher = fetcher.New(tgClient)
-
-	// processor = processor.New(tgClient)
-
-	// consumer.Start(fetcher, processor)
+	consumer := event_consumer.New(eventsProcessor, eventsProcessor, batchSize)
+	if err := consumer.Start(); err != nil {
+		log.Fatal("service is stopped", err)
+	}
 }
 
 // name "must" implies that function will go panic instead of returning error
