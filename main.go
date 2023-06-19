@@ -1,27 +1,38 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
 	tgClient "read-adviser-bot/clients/telegram"
 	event_consumer "read-adviser-bot/consumer/event-consumer"
 	"read-adviser-bot/events/telegram"
-	"read-adviser-bot/storage/files"
+	"read-adviser-bot/storage/sqlite"
 )
 
 // it is better to get host just as we get Token - through the flag
 // but for lack of time lets skip it for a while
 
 const (
-	tgBotHost   = "api.telegram.org"
-	storagePath = "files_storage"
-	batchSize   = 100
+	tgBotHost         = "api.telegram.org"
+	storagePath       = "files_storage"
+	sqliteStoragePath = "data/sqlite/storage.db"
+	batchSize         = 100
 )
 
 func main() {
+	//s := files.New(storagePath),
+	s, err := sqlite.New(sqliteStoragePath)
+	if err != nil {
+		log.Fatalf("can't connect ot storage: ", err)
+	}
+
+	if err := s.Init(context.TODO()); err != nil {
+		log.Fatalf("can't init storage: ", err)
+	}
 	eventsProcessor := telegram.New(
 		tgClient.New(tgBotHost, mustToken()),
-		files.New(storagePath),
+		s,
 	)
 
 	log.Print("service started")
